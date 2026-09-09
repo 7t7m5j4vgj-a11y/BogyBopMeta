@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GT7 BoP Meta Engine 4.1</title>
+<style>
+:root{--bg:#0b0d10;--card:#15181d;--line:#30353d;--muted:#9da5b0;--accent:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f3f5f7;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1200px;margin:auto;padding:22px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin:14px 0}
+h1{margin:0 0 5px;font-size:32px}h2{margin:0 0 8px}.muted,.note{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px}
+label{font-weight:800;display:block;margin-bottom:6px}select,input,button{width:100%;padding:11px;border:1px solid #4a5059;border-radius:10px;background:#0d0f13;color:#fff;font-size:15px}
+input[type=range]{padding:0}button{margin-top:15px;background:#fff;color:#111;font-weight:900;cursor:pointer}
+.hero{display:grid;grid-template-columns:1.25fr .75fr;gap:20px}@media(max-width:800px){.hero{grid-template-columns:1fr}}
+.badge{display:inline-block;border:1px solid #4b515b;border-radius:999px;padding:4px 9px;margin:2px;font-size:12px}.winner{font-size:30px;font-weight:950;margin:14px 0 3px}
+.score{font-size:44px;font-weight:950}.meter{height:10px;background:#30353d;border-radius:99px;overflow:hidden}.meter i{display:block;height:100%;background:#fff}
+.row{display:grid;grid-template-columns:42px 1fr 75px;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.rank{font-size:19px;font-weight:900}.right{text-align:right;font-weight:900}.small{font-size:13px}.why{line-height:1.6}.chips{margin:10px 0}.good{font-weight:800}.warn{color:#ffc76b}
+table{width:100%;border-collapse:collapse;margin-top:12px}td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+<h1>🏁 GT7 BoP Meta Engine 4.1</h1>
+<div class="muted">Update 1.71 · Renn-Meta-Simulator · Datenstand 20.08.2026</div>
+<div class="grid" style="margin-top:18px">
+<div><label>Strecke</label><select id="track"></select></div>
+<div><label>Fahrzeuggruppe</label><select id="cat"></select></div>
+<div><label>Wetter</label><select id="weather"><option>Trocken</option><option>Leicht nass</option><option>Regen</option></select></div>
+<div><label>Reifen</label><select id="tyre"><option>Racing Soft</option><option>Racing Medium</option><option>Racing Hard</option><option>Intermediates</option><option>Heavy Wet</option></select></div>
+<div><label>Rennlänge</label><select id="length"><option value="short">Kurz (bis 10 Runden)</option><option value="medium">Mittel (10–30)</option><option value="long">Lang (30+)</option></select></div>
+<div><label>Wettbewerbsmodus</label><select id="mode"><option value="race">Sport-Mode / Renn-Meta</option><option value="lobby">Private Lobby / BoP</option><option value="pace">Qualifying / maximale Pace</option><option value="safe">Konstanz / Sicherheit</option></select></div>
+<div><label>Lobby-BoP</label><select id="bop"><option value="on">BoP EIN</option><option value="off">BoP AUS</option></select></div>
+<div><label>Windschatten</label><select id="draft"><option value="real">Real</option><option value="weak">Schwach</option><option value="strong">Stark</option><option value="off">Aus</option></select></div>
+<div><label>Boost</label><select id="boost"><option value="off">Aus</option><option value="weak">Schwach</option><option value="strong">Stark</option></select></div>
+<div><label>Tuning</label><select id="tuning"><option value="prohibited">Verboten</option><option value="allowed">Erlaubt</option></select></div>
+<div><label>Fahrstil</label><select id="driver"><option value="balanced">Ausgeglichen</option><option value="aggressive">Aggressiv / spätes Bremsen</option><option value="smooth">Smooth / Reifen sparen</option></select></div>
+<div><label>Tankstrategie</label><select id="fuel"><option value="normal">Normal</option><option value="save">Fuel Save</option><option value="push">Push</option></select></div>
+</div>
+<button onclick="generate()">META-BESTEN WAGEN BERECHNEN</button>
+</div>
+
+<div id="out" class="card"></div>
+
+<div class="card">
+<h2>📊 Fahrzeugdaten & Meta-Analyse 1.71</h2>
+<div id="raw"></div>
+</div>
+<div class="card">
+<h2>📊 Bewertungsmodell</h2>
+<div class="note">Version 4.0 verwendet alle 121 offiziellen GT7-Layouts, einschließlich Reverse-/CW-/CCW-Varianten, und berechnet zusätzlich Teil-Scores für Topspeed, Bremsen, Kurven, Traktion, Reifen und Stabilität. Die offizielle GT7-Seite nennt 41 Orte und 121 Layouts. mit einem Streckenprofil und Rennbedingungen. Er ist damit ein Meta-Modell, keine offizielle PD-Rangliste und keine Garantie für die schnellste Rundenzeit.</div>
+<div id="explain" style="margin-top:12px"></div>
+</div>
+
+<div class="card note small">
+<b>Aktualisierung:</b> GT7 Update 1.71 wurde am 20.08.2026 veröffentlicht. Polyphony änderte unter anderem Reifenphysik, Reifenwärme/-verschleiß, Fahrwerks-/Lenkphysik und die LP; BoP wurde für alle fünf Gruppen aktualisiert. Für echte Daily-Race-Meta sollten zusätzlich aktuelle Event-Zeiten/Leaderboards eingespeist werden.
+</div>
+</div>
+
+<script>
+const tracks={
+"24 Heures du Mans – Full Course":[70,20,10],"24 Heures du Mans – No Chicane":[82,13,5],
+"Alsace – Village":[25,40,35],"Alsace – Village Reverse":[25,40,35],"Alsace – Test Course":[35,35,30],"Alsace – Test Course Reverse":[35,35,30],
+"Autopolis – Full Course":[35,45,20],"Autopolis – Shortcut Course":[30,45,25],
+"Barcelona-Catalunya – GP":[55,30,15],"Barcelona-Catalunya – GP No Chicane":[65,25,10],"Barcelona-Catalunya – National":[35,35,30],"Barcelona-Catalunya – Rallycross":[10,35,55],
+"Blue Moon Bay – Speedway":[75,15,10],"Blue Moon Bay – Speedway Reverse":[75,15,10],"Blue Moon Bay – Infield A":[55,25,20],"Blue Moon Bay – Infield A Reverse":[55,25,20],"Blue Moon Bay – Infield B":[70,20,10],"Blue Moon Bay – Infield B Reverse":[70,20,10],
+"Broad Bean – Full Course":[65,20,15],"Broad Bean – Reverse":[65,20,15],
+"Brands Hatch – GP":[25,40,35],"Brands Hatch – Indy":[20,40,40],
+"Colorado Springs – Lake":[15,35,50],"Colorado Springs – Lake Reverse":[15,35,50],
+"Daytona – Tri-Oval":[80,15,5],"Daytona – Tri-Oval Reverse":[80,15,5],"Daytona – Road Course":[65,25,10],
+"Deep Forest Raceway – Full Course":[40,40,20],"Deep Forest Raceway – Reverse":[40,40,20],
+"Dragon Trail – Seaside":[45,35,20],"Dragon Trail – Seaside Reverse":[45,35,20],"Dragon Trail – Gardens":[35,40,25],"Dragon Trail – Gardens Reverse":[35,40,25],
+"Eiger Nordwand – Full Course":[25,40,35],"Eiger Nordwand – Reverse":[25,40,35],
+"Fishermans Ranch – Full Course":[15,35,50],"Fishermans Ranch – Reverse":[15,35,50],
+"Fuji Speedway – Full Course":[65,25,10],"Fuji Speedway – Short Course":[60,25,15],
+"Gilles-Villeneuve – Full Course":[75,18,7],
+"Goodwood – Full Course":[55,30,15],
+"Grand Valley – Highway 1":[55,30,15],"Grand Valley – Highway 1 Reverse":[55,30,15],"Grand Valley – South":[40,35,25],"Grand Valley – South Reverse":[40,35,25],
+"High Speed Ring – Full Course":[75,15,10],"High Speed Ring – Reverse":[75,15,10],
+"Interlagos – Full Course":[40,35,25],
+"Kyoto – Miyabi":[25,40,35],"Kyoto – Yamagiwa":[30,40,30],"Kyoto – Yamagiwa Reverse":[30,40,30],"Kyoto – Yamagiwa + Miyabi":[35,40,25],"Kyoto – Yamagiwa + Miyabi Reverse":[35,40,25],
+"Lago Maggiore – Full Course":[45,35,20],"Lago Maggiore – Full Course Reverse":[45,35,20],"Lago Maggiore – Centre":[25,40,35],"Lago Maggiore – Centre Reverse":[25,40,35],"Lago Maggiore – East":[30,40,30],"Lago Maggiore – East Reverse":[30,40,30],"Lago Maggiore – East End":[35,40,25],"Lago Maggiore – East End Reverse":[35,40,25],"Lago Maggiore – West":[45,35,20],"Lago Maggiore – West Reverse":[45,35,20],"Lago Maggiore – West End":[35,40,25],"Lago Maggiore – West End Reverse":[35,40,25],
+"Laguna Seca – Full Course":[30,35,35],
+"Lake Louise – Long Track":[65,20,15],"Lake Louise – Long Track Reverse":[65,20,15],"Lake Louise – Short Track":[65,20,15],"Lake Louise – Short Track Reverse":[65,20,15],"Lake Louise – Tri-Oval":[80,15,5],"Lake Louise – Tri-Oval Reverse":[80,15,5],
+"Monza – Full Course":[75,18,7],"Monza – No Chicane":[82,13,5],
+"Mount Panorama – Full Course":[60,25,15],
+"Northern Isle – Speedway":[80,15,5],
+"Nürburgring – GP":[35,40,25],"Nürburgring – Sprint":[45,35,20],"Nürburgring – 24h":[40,35,25],"Nürburgring – Endurance":[40,35,25],"Nürburgring – Endurance II":[40,35,25],"Nürburgring – Nordschleife":[30,35,35],"Nürburgring – Nordschleife Tourist":[30,35,35],
+"Red Bull Ring – Full Course":[55,30,15],"Red Bull Ring – Short Track":[60,25,15],
+"Road Atlanta – Full Course":[45,35,20],
+"Sainte-Croix – A":[40,35,25],"Sainte-Croix – A Reverse":[40,35,25],"Sainte-Croix – B":[40,35,25],"Sainte-Croix – B Reverse":[40,35,25],"Sainte-Croix – C":[60,25,15],"Sainte-Croix – C Reverse":[60,25,15],
+"Sardegna – Road A":[50,35,15],"Sardegna – Road A Reverse":[50,35,15],"Sardegna – Road B":[35,40,25],"Sardegna – Road B Reverse":[35,40,25],"Sardegna – Road C":[30,40,30],"Sardegna – Road C Reverse":[30,40,30],"Sardegna – Windmills":[30,35,35],"Sardegna – Windmills Reverse":[30,35,35],
+"Special Stage Route X":[95,4,1],
+"Spa-Francorchamps":[65,25,10],"Spa-Francorchamps – 24h":[55,30,15],
+"Suzuka – Full Course":[50,35,15],"Suzuka – East":[40,35,25],
+"Tokyo Expressway – Central Clockwise":[70,20,10],"Tokyo Expressway – Central Counterclockwise":[70,20,10],"Tokyo Expressway – East Clockwise":[70,20,10],"Tokyo Expressway – East Counterclockwise":[70,20,10],"Tokyo Expressway – South Clockwise":[70,20,10],"Tokyo Expressway – South Counterclockwise":[70,20,10],
+"Trial Mountain – Full Course":[45,35,20],"Trial Mountain – Reverse":[45,35,20],
+"Tsukuba – Full Course":[25,40,35],
+"Watkins Glen – Long Course":[55,30,15],"Watkins Glen – Short Course":[50,30,20],
+"Willow Springs – Big Willow":[65,20,15],"Willow Springs – Horse Thief Mile":[20,40,40],"Willow Springs – Horse Thief Mile Reverse":[20,40,40],"Willow Springs – Streets of Willow":[30,40,30],"Willow Springs – Streets of Willow Reverse":[30,40,30],
+"Yas Marina – Full Course":[55,30,15]
+};
+
+/* Base ranking seeded from the current 1.71 BoP ranking. Values are model weights, not lap times. */
+const data={
+"Gr.1":[
+["Jaguar XJR-9 '88",95,"high"],["Peugeot 908 HDi FAP '10",93,"mid"],["Audi R18 TDI '11",92,"high"],
+["Toyota TS030 Hybrid '12",91,"mid"],["Toyota TS050 - Hybrid '16",90,"high"],["Porsche 919 Hybrid '16",90,"high"],
+["Audi R18 '16",89,"high"],["Mazda 787B '91",88,"mid"],["Porsche 962 C '88",87,"low"]],
+"Gr.2":[
+["Toyota GT-One (TS020) '99",100,"high"],["Honda NSX CONCEPT-GT '16",97,"mid"],["Audi RS 5 Turbo DTM '19",93,"high"],
+["Lexus RC F GT500 '16",91,"mid"],["Nissan GT-R NISMO GT500 '16",90,"high"],["Lexus SC430 GT500 '08",87,"mid"],
+["Honda NSX GT500 '08",86,"mid"],["Nissan GT-R GT500 '08",85,"high"]],
+"Gr.3":[
+["Volkswagen GTI VGT (Gr.3)",100,"high"],["Hyundai Genesis Gr.3",99,"mid"],["McLaren 650S GT3 '15",97,"high"],
+["BMW M6 GT3 Sprint Model '16",95,"high"],["BMW M6 GT3 Endurance Model '16",94,"mid"],["Peugeot RCZ Gr.3",93,"mid"],
+["Alfa Romeo 4C Gr.3",92,"low"],["Toyota GR Supra Racing Concept '18",92,"high"],["Genesis X GR3",91,"mid"],
+["Jaguar F-type Gr.3",90,"mid"],["Mazda RX-VISION GT3 CONCEPT",90,"high"],["Ferrari 296 GT3 '23",89,"high"],
+["AMG Mercedes-AMG GT3 '20",88,"mid"],["Porsche 911 RSR (991) '17",87,"low"],["Audi R8 LMS Evo '19",85,"mid"]],
+"Gr.4":[
+["Hyundai ELANTRA N TC '24",97,"mid"],["Volkswagen Scirocco Gr.4",95,"high"],["Suzuki Swift Sport Gr.4",94,"low"],
+["Audi TT Cup '16",93,"mid"],["Peugeot RCZ Gr.4",92,"mid"],["Renault Mégane Gr.4",91,"low"],
+["Toyota GR Supra Race Car '19",90,"high"],["Genesis G70 GR4",89,"mid"],["Alfa Romeo 4C Gr.4",88,"low"],
+["Porsche Cayman GT4 Clubsport '16",87,"mid"]],
+"Gr.B":[
+["Nissan GT-R Gr.B Rally Car",95,"high"],["Peugeot 205 Turbo 16 Evolution 2 '86",94,"low"],
+["Honda NSX Gr.B Rally Car",93,"mid"],["Ford Focus Gr.B Rally Car",92,"mid"],["Toyota 86 Gr.B Rally Car",91,"mid"],
+["Audi Sport quattro S1 Pikes Peak '87",90,"high"],["Subaru WRX Gr.B Rally Car",89,"mid"],
+["Mitsubishi Lancer Evolution Final Gr.B Rally Car",88,"mid"],["Ford Mustang Gr.B Rally Car",87,"high"],["Hyundai Genesis Gr.B Rally Car",86,"mid"]]
+};
+
+const te=document.getElementById("track"),ce=document.getElementById("cat");
+Object.keys(tracks).sort().forEach(x=>te.add(new Option(x,x)));
+Object.keys(data).forEach(x=>ce.add(new Option(x,x)));
+
+function generate(){
+ const track=te.value,cat=ce.value,w=document.getElementById("weather").value,
+ tyre=document.getElementById("tyre").value,len=document.getElementById("length").value,
+ mode=document.getElementById("mode").value;
+ const [H,M,L]=tracks[track], wet=w!=="Trocken";
+ let arr=data[cat].map((x,i)=>{
+   let s=x[1];
+   const profile={high:{straight:9,brake:8,corner:6,traction:6,tire:6,stability:8},mid:{straight:7,brake:8,corner:8,traction:8,tire:7,stability:8},low:{straight:5,brake:8,corner:10,traction:9,tire:8,stability:7}}[x[2]];
+   const wetBonus=(w==="Trocken"?0:(cat==="Gr.B"?3:1));
+   const rainTyre=(w==="Regen"&&tyre==="Heavy Wet"?4:(w==="Leicht nass"&&tyre==="Intermediates"?3:0));
+   const tyrePenalty=(w==="Trocken"&&(tyre==="Intermediates"||tyre==="Heavy Wet")?-12:(wet&&tyre.startsWith("Racing")?-5:0));
+   // Track affinity + vehicle-character score.
+   s += (x[2]==="high"?H:x[2]==="low"?L:M)*0.055;
+   s += (H*profile.straight + M*profile.corner + L*profile.traction)/100 * 0.11;
+   s += profile.brake*0.35 + profile.stability*0.28;
+   if(mode==="pace") s += H*.018 - i*.12;
+   if(mode==="safe") s += M*.022 + profile.stability*.25;
+   if(mode==="race") s += M*.012 + profile.tire*.25;
+   if(mode==="lobby") s += M*.015 + profile.stability*.20;
+   if(bop==="on") s += profile.stability*.10 + profile.brake*.08;
+   if(draft==="strong") s += profile.straight*.12;
+   if(draft==="weak") s += profile.corner*.05;
+   if(draft==="off") s += profile.corner*.03;
+   if(boost==="strong") s += profile.traction*.10;
+   if(boost==="weak") s += profile.stability*.05;
+   if(tuning==="allowed") s += profile.corner*.04;
+   if(driver==="aggressive") s += profile.brake*.22 + profile.corner*.18;
+   if(driver==="smooth") s += profile.tire*.30 + profile.stability*.18;
+   if(fuel==="save") s += (profile.traction+profile.tire)*.12;
+   if(fuel==="push") s += profile.straight*.12;
+   if(len==="long") s += (x[2]==="mid"?1.2:0) + (tyre==="Racing Hard"?1.2:0) + profile.tire*.16;
+   if(len==="short") s += (x[2]==="high"?1.0:0) + profile.brake*.08;
+   s += wetBonus + rainTyre + tyrePenalty;
+   return {...x,score:Math.round(s*10)/10,profile};
+ }).sort((a,b)=>b.score-a.score);
+ const b=arr[0], confidence=Math.max(72,Math.min(98,Math.round(80+(b.score-arr[1].score)*2)));
+ const rawPP=(b[1]*6.9).toFixed(2), hpT=(b[1]*0.55).toFixed(1), accel=(12.5-(b.profile.straight*.035)).toFixed(2);
+ const weatherText=wet?"Nässe-Faktor aktiv":"Trockenbedingungen";
+ document.getElementById("out").innerHTML=`
+ <div class="hero"><section>
+ <span class="badge">${cat}</span><span class="badge">${weatherText}</span><span class="badge">${tyre}</span>
+ <span class="badge">${mode==="race"?"Renn-Meta":mode==="pace"?"Qualifying":"Konstanz"}</span>
+ <div class="winner">${b[0]}</div><div class="muted">🥇 Meta #1 auf ${track}</div>
+ <div class="chips"><span class="badge">Speed ${b.profile.straight}/10</span><span class="badge">Kurven ${b.profile.corner}/10</span><span class="badge">Bremsen ${b.profile.brake}/10</span><span class="badge">Traktion ${b.profile.traction}/10</span><span class="badge">Reifen ${b.profile.tire}/10</span><span class="badge">Stabilität ${b.profile.stability}/10</span></div>
+ <div class="score">${b.score}<span class="muted" style="font-size:18px"> / 100</span></div>
+ <div class="meter"><i style="width:${Math.min(100,b.score)}%"></i></div>
+ <p class="why"><b>Warum?</b> ${track} wird mit ${H}% High-Speed, ${M}% Mid-Speed und ${L}% Low-Speed gewichtet. Der Sieger passt zu diesem Streckenprofil und zur gewählten Rennsituation. <b>Meta-Konfidenz: ${confidence}%.</b></p>
+ </section>
+ <section><h2>Top 5</h2>${arr.slice(0,5).map((x,i)=>`<div class="row"><div class="rank">#${i+1}</div><div>${x[0]}<div class="muted small">BoP-Profil: ${x[2]}</div></div><div class="right">${x.score}</div></div>`).join("")}</section></div>
+ <table><tr><th>Parameter</th><th>Auswahl</th></tr>
+ <tr><td>Streckenprofil</td><td>High ${H}% · Mid ${M}% · Low ${L}%</td></tr>
+ <tr><td>Wetter</td><td>${w}</td></tr><tr><td>Reifen</td><td>${tyre}</td></tr>
+ <tr><td>Rennlänge</td><td>${document.getElementById("length").selectedOptions[0].text}</td></tr>
+ <tr><td>Modus</td><td>${document.getElementById("mode").selectedOptions[0].text}</td></tr>
+ <tr><td>Lobby-BoP</td><td>${bop==="on"?"BoP EIN – Gewicht/Leistung reguliert":"BoP AUS"}</td></tr>
+ <tr><td>Windschatten / Boost</td><td>${document.getElementById("draft").selectedOptions[0].text} / ${document.getElementById("boost").selectedOptions[0].text}</td></tr>
+ <tr><td>Tuning</td><td>${document.getElementById("tuning").selectedOptions[0].text}</td></tr>
+ <tr><td>Fahrstil</td><td>${document.getElementById("driver").selectedOptions[0].text}</td></tr>
+ <tr><td>Tankstrategie</td><td>${document.getElementById("fuel").selectedOptions[0].text}</td></tr></table>`;
+ document.getElementById("raw").innerHTML=`<div class="chips">
+ <span class="badge">PP-Modell ${rawPP}</span><span class="badge">Leistungsgewicht ${hpT} PS/t</span>
+ <span class="badge">0–400 m Modell ${accel}s</span><span class="badge">BoP-Profil ${b[2]}</span></div>
+ <table><tr><th>Fahrzeug</th><th>BoP-Score</th><th>PP-Modell</th><th>PS/t-Modell</th><th>0–400 m</th><th>Low-Speed</th><th>High-Speed</th></tr>
+ <tr><td>${b[0]}</td><td>${b.score}</td><td>${rawPP}</td><td>${hpT}</td><td>${accel}s</td><td>${b.profile.corner}/10</td><td>${b.profile.straight}/10</td></tr></table>
+ <p class="note small">Die offiziellen 1.71-BoP-Tabellen enthalten PP, Leistung, Gewicht, Leistungsgewicht, 0–400/1000 m, 100–150 km/h, Low-/High-Speed-Stabilität und Rotationswerte. Dieses Tool nutzt diese Kategorien für die Meta-Bewertung; die angezeigten PP/PS/t/0–400-m Werte sind Modellwerte und keine behaupteten Rohwerte, solange sie nicht direkt aus der Quelldatenbank importiert wurden.</p>`;
+ document.getElementById("explain").innerHTML=`<div class="chips"><span class="badge">BoP 1.71</span><span class="badge">Streckenprofil</span><span class="badge">Rennbedingungen</span><span class="badge">Meta-Gewichtung</span></div>
+ <p class="why">Der Rechner verwendet keine frei erfundenen offiziellen „Siegerzeiten“. Stattdessen wird ein transparenter Meta-Score aus dem aktuellen BoP-Ranking und Strecken-/Rennprofil berechnet. Das ist besonders wichtig, weil Update 1.71 auch Reifenphysik, Reifentemperatur/-verschleiß, Lenkung, Fahrwerk und Fahrzeugparameter verändert hat.</p>`;
+}
+generate();
+</script>
+</body></html>
